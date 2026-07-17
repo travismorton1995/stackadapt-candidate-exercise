@@ -29,7 +29,8 @@
         -256
       ],
       "id": "650e081b-46ad-4572-8485-9fe815fc2705",
-      "name": "Get Salesforce"
+      "name": "Get Salesforce",
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -43,7 +44,8 @@
         -256
       ],
       "id": "ee3f26bc-a1b3-4bf2-843c-2a52884bf2e4",
-      "name": "Get CLM"
+      "name": "Get CLM",
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -57,7 +59,8 @@
         -256
       ],
       "id": "3144387e-c50f-4acc-ba0a-a2f6d53fa629",
-      "name": "Get NetSuite"
+      "name": "Get NetSuite",
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -71,7 +74,8 @@
         -256
       ],
       "id": "0698c4cb-efed-4cec-bf00-459beddba18e",
-      "name": "Get Provisioning"
+      "name": "Get Provisioning",
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -85,7 +89,8 @@
         -256
       ],
       "id": "a7f01d8a-35d5-40b4-b994-1b5c2e403fd4",
-      "name": "Get Playbook"
+      "name": "Get Playbook",
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -252,7 +257,8 @@
         -256
       ],
       "id": "a7b30432-da6b-4fec-a6eb-efdd33a74a94",
-      "name": "Get Rules Config"
+      "name": "Get Rules Config",
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -361,7 +367,8 @@
         -416
       ],
       "id": "8cb5f8f7-e0f6-4e5e-9e9a-220d33622eec",
-      "name": "Send Nudge"
+      "name": "Send Nudge",
+      "retryOnFail": true
     }
   ],
   "pinData": {
@@ -583,9 +590,14 @@
   "active": true,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "B9xHGnmuE4iPwLtH",
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": -1
   },
-  "versionId": "6cd2648f-ae95-489a-8d16-891336be5b01",
+  "versionId": "290dbd21-7145-4eed-8705-3abe5752fecf",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "de76667ac4edc932d0812c689cd91c664e2a282884accdcbbd2864350b14e6a5"

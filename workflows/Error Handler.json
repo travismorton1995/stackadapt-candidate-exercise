@@ -1,0 +1,89 @@
+{
+  "name": "Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b4b96a8b-8e04-4425-921a-0b53c5086f92",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mocks:8000/audit",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  run_id: String($json.execution.id),\n  trigger: \"error_workflow\",\n  customer_id: \"unknown\",\n  state_snapshot: null,\n  llm_verdict: {\n    error_message: $json.execution.error.description || $json.execution.error.message,\n    failed_node: $json.execution.lastNodeExecuted,\n    workflow_name: $json.workflow.name,\n    execution_url: $json.execution.url\n  },\n  action_taken: \"error\"\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "a6d39d5e-8927-43d5-9ac9-195d78075a08",
+      "name": "Log Error"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mocks:8000/slack/notify",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  channel: \"#ops-alerts\",\n  text: `Monitor workflow failed at node '${$node[\"Error Trigger\"].json.execution.lastNodeExecuted}': ${$node[\"Error Trigger\"].json.execution.error.description || $node[\"Error Trigger\"].json.execution.error.message}. Execution: ${$node[\"Error Trigger\"].json.execution.url}`\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "4c697d8b-0bb2-4b5d-96a9-b2bc1cd53147",
+      "name": "Notify Error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Log Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Error": {
+      "main": [
+        [
+          {
+            "node": "Notify Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "aef867b2-4d9a-4396-80fa-d786394aead6",
+  "meta": {
+    "instanceId": "de76667ac4edc932d0812c689cd91c664e2a282884accdcbbd2864350b14e6a5"
+  },
+  "nodeGroups": [],
+  "id": "B9xHGnmuE4iPwLtH",
+  "tags": []
+}
