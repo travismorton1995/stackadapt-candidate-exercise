@@ -1,0 +1,6 @@
+{
+  "customer_id": "acme",
+  "status": "signed",
+  "signed_date": "2026-07-05",
+  "contract_value": 180000
+}

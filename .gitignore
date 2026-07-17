@@ -1,0 +1,17 @@
+# secrets
+.env
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# sqlite audit db (regenerated at runtime)
+mocks/audit.db
+
+# n8n local data (persisted via named docker volume, not bind mount, but just in case)
+.n8n/
+
+# OS
+.DS_Store
+Thumbs.db

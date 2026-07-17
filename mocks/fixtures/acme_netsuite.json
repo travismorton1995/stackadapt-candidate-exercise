@@ -1,0 +1,7 @@
+{
+  "customer_id": "acme",
+  "invoice_status": "not_created",
+  "issued_date": null,
+  "paid_date": null,
+  "amount": null
+}

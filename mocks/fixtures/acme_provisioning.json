@@ -1,0 +1,11 @@
+{
+  "customer_id": "acme",
+  "steps": [
+    { "name": "Kickoff call scheduled", "owner": "cs", "status": "pending", "due_date": "2026-07-07" },
+    { "name": "Admin account provisioned", "owner": "cs", "status": "pending", "due_date": "2026-07-08" },
+    { "name": "SSO configuration submitted", "owner": "customer", "status": "pending", "due_date": "2026-07-10" },
+    { "name": "Data import file submitted", "owner": "customer", "status": "pending", "due_date": "2026-07-12" },
+    { "name": "Integration testing completed", "owner": "cs", "status": "pending", "due_date": "2026-07-21" },
+    { "name": "Go-live", "owner": "cs", "status": "pending", "due_date": "2026-07-27" }
+  ]
+}
