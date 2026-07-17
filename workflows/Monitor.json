@@ -1,0 +1,377 @@
+{
+  "name": "Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contract_signed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -736,
+        -192
+      ],
+      "id": "7176294e-abaf-4871-857a-190ba681fb32",
+      "name": "Webhook",
+      "webhookId": "9c165afc-22e1-49ad-b650-78af80cbd701"
+    },
+    {
+      "parameters": {
+        "url": "http://mocks:8000/salesforce/opportunities/acme",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -512,
+        -192
+      ],
+      "id": "650e081b-46ad-4572-8485-9fe815fc2705",
+      "name": "Get Salesforce"
+    },
+    {
+      "parameters": {
+        "url": "http://mocks:8000/clm/contracts/acme",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -304,
+        -192
+      ],
+      "id": "ee3f26bc-a1b3-4bf2-843c-2a52884bf2e4",
+      "name": "Get CLM"
+    },
+    {
+      "parameters": {
+        "url": "http://mocks:8000/netsuite/invoices/acme",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -96,
+        -192
+      ],
+      "id": "3144387e-c50f-4acc-ba0a-a2f6d53fa629",
+      "name": "Get NetSuite"
+    },
+    {
+      "parameters": {
+        "url": "http://mocks:8000/provisioning/status/acme",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        96,
+        -192
+      ],
+      "id": "0698c4cb-efed-4cec-bf00-459beddba18e",
+      "name": "Get Provisioning"
+    },
+    {
+      "parameters": {
+        "url": "http://mocks:8000/playbook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        304,
+        -192
+      ],
+      "id": "a7f01d8a-35d5-40b4-b994-1b5c2e403fd4",
+      "name": "Get Playbook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7972dd86-8085-4437-bcd0-1644d38a10e0",
+              "name": "customer_id",
+              "value": "=acme",
+              "type": "string"
+            },
+            {
+              "id": "a297bef9-337c-4968-a657-942ea11d5342",
+              "name": "salesforce",
+              "value": "={{ $node[\"Get Salesforce\"].json }}",
+              "type": "object"
+            },
+            {
+              "id": "96ac5e60-0c33-4a51-a0f4-036a05d994ca",
+              "name": "clm",
+              "value": "={{ $node[\"Get CLM\"].json }}",
+              "type": "object"
+            },
+            {
+              "id": "78c6fed1-5fe8-4b35-a2a1-81a65741c25a",
+              "name": "netsuite",
+              "value": "={{ $node[\"Get NetSuite\"].json }}",
+              "type": "object"
+            },
+            {
+              "id": "d26f898c-5b38-45e9-ad32-34dee951f028",
+              "name": "provisioning",
+              "value": "={{ $node[\"Get Provisioning\"].json }}",
+              "type": "object"
+            },
+            {
+              "id": "a8c3ed15-46db-4cd7-b47b-84e0b39e0d3d",
+              "name": "playbook_text",
+              "value": "={{ $node[\"Get Playbook\"].json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        -192
+      ],
+      "id": "1bb1342f-e32f-4618-ad13-5e65ebe4462a",
+      "name": "Build State"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Today's date: {{ $now.format('yyyy-LL-dd') }}\n\nPlaybook policy documents:\n{{ $json.playbook_text }}\n\nCustomer state:\n{{ JSON.stringify({ customer_id: $json.customer_id, salesforce: $json.salesforce, clm: $json.clm, netsuite: $json.netsuite, provisioning: $json.provisioning }, null, 2) }}\n",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a Customer Success onboarding risk assessor. You will be given a customer's current state (Salesforce opportunity, CLM contract, NetSuite invoice, and provisioning checklist) plus the full text of three playbook policy documents. Assess the account's risk using ONLY the playbook rules provided -- do not invent policy.  \n\nRespond with STRICT JSON only. No markdown code fences, no prose outside the JSON. Match exactly this shape: \n\n{   \n\"risk_level\": \"low\" | \"medium\" | \"high\",   \n\"risks\": [\"...\"],   \n\"summary\": \"2-3 sentence human-readable status for the CS team\",   \n\"recommended_action\": \"none\" | \"notify\" | \"nudge_customer\" | \"create_task\",   \n\"reasoning\": \"1-2 sentences citing the specific playbook rule involved\" \n}  \n\nCite the specific playbook rule that triggered each risk, both in \"risks\" and in \"reasoning\"."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        720,
+        -192
+      ],
+      "id": "800afeeb-5506-4ca4-a6d5-41ae03262f8a",
+      "name": "LLM Assessment"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        656,
+        16
+      ],
+      "id": "aab64bfe-ea9a-47ec-9aa6-df43dd2baad8",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "KqBjSxjyf3p5hHeA",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.text;\n\nlet jsonText = null;\nconst fenceMatch = raw.match(/```json\\s*([\\s\\S]*?)```/i) || raw.match(/```\\s*([\\s\\S]*?)```/);\nif (fenceMatch) {\n  jsonText = fenceMatch[1].trim();\n} else {\n  const start = raw.indexOf('{');\n  const end = raw.lastIndexOf('}');\n  if (start !== -1 && end !== -1 && end > start) {\n    jsonText = raw.slice(start, end + 1);\n  }\n}\n\nif (!jsonText) {\n  throw new Error('No JSON object found in LLM response: ' + raw);\n}\n\nlet verdict;\ntry {\n  verdict = JSON.parse(jsonText);\n} catch (err) {\n  throw new Error('Failed to parse LLM JSON: ' + err.message + '\\nRaw text: ' + jsonText);\n}\n\nconst requiredFields = ['risk_level', 'risks', 'summary', 'recommended_action', 'reasoning'];\nfor (const field of requiredFields) {\n  if (!(field in verdict)) {\n    throw new Error(`LLM verdict missing required field: ${field}`);\n  }\n}\n\nreturn [{\n  json: {\n    customer_id: $node[\"Build State\"].json.customer_id,\n    state: {\n      salesforce: $node[\"Build State\"].json.salesforce,\n      clm: $node[\"Build State\"].json.clm,\n      netsuite: $node[\"Build State\"].json.netsuite,\n      provisioning: $node[\"Build State\"].json.provisioning,\n    },\n    verdict,\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -192
+      ],
+      "id": "849a0ca1-d3f1-4060-bd8c-1d56841da530",
+      "name": "Parse Verdict"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mocks:8000/slack/notify",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  channel: \"#cs-onboarding\",\n  text: `[${$json.verdict.risk_level.toUpperCase()}] ${$json.customer_id.toUpperCase()} onboarding update\\n\\n${$json.verdict.summary}\\n\\nRisks:\\n${$json.verdict.risks.map(r => '- ' + r).join('\\n')}\\n\\nReasoning: ${$json.verdict.reasoning}`\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1216,
+        -192
+      ],
+      "id": "9aeec432-64a7-4aae-8ada-d8313817bd88",
+      "name": "Slack Notify"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mocks:8000/audit",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  run_id: $execution.id,\n  trigger: \"webhook:contract_signed\",\n  customer_id: $node[\"Parse Verdict\"].json.customer_id,\n  state_snapshot: $node[\"Parse Verdict\"].json.state,\n  llm_verdict: $node[\"Parse Verdict\"].json.verdict,\n  action_taken: \"notify\"\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1392,
+        -192
+      ],
+      "id": "5c1120b9-c038-41ff-9714-bd4ab41e55c2",
+      "name": "Write Audit"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Salesforce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Salesforce": {
+      "main": [
+        [
+          {
+            "node": "Get CLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CLM": {
+      "main": [
+        [
+          {
+            "node": "Get NetSuite",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get NetSuite": {
+      "main": [
+        [
+          {
+            "node": "Get Provisioning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Provisioning": {
+      "main": [
+        [
+          {
+            "node": "Get Playbook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Playbook": {
+      "main": [
+        [
+          {
+            "node": "Build State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build State": {
+      "main": [
+        [
+          {
+            "node": "LLM Assessment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LLM Assessment",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Assessment": {
+      "main": [
+        [
+          {
+            "node": "Parse Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Verdict": {
+      "main": [
+        [
+          {
+            "node": "Slack Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Notify": {
+      "main": [
+        [
+          {
+            "node": "Write Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f993499e-2fb1-4e25-8f95-908af40b0288",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "de76667ac4edc932d0812c689cd91c664e2a282884accdcbbd2864350b14e6a5"
+  },
+  "nodeGroups": [],
+  "id": "F2EgsTGOuDdIsvQE",
+  "tags": []
+}
