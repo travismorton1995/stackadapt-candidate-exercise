@@ -11,7 +11,7 @@
       "typeVersion": 2.1,
       "position": [
         -736,
-        -192
+        -256
       ],
       "id": "7176294e-abaf-4871-857a-190ba681fb32",
       "name": "Webhook",
@@ -19,56 +19,56 @@
     },
     {
       "parameters": {
-        "url": "http://mocks:8000/salesforce/opportunities/acme",
+        "url": "=http://mocks:8000/salesforce/opportunities/{{ $node[\"Webhook\"].json.body.customer_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
         -512,
-        -192
+        -256
       ],
       "id": "650e081b-46ad-4572-8485-9fe815fc2705",
       "name": "Get Salesforce"
     },
     {
       "parameters": {
-        "url": "http://mocks:8000/clm/contracts/acme",
+        "url": "=http://mocks:8000/clm/contracts/{{ $node[\"Webhook\"].json.body.customer_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -304,
-        -192
+        -288,
+        -256
       ],
       "id": "ee3f26bc-a1b3-4bf2-843c-2a52884bf2e4",
       "name": "Get CLM"
     },
     {
       "parameters": {
-        "url": "http://mocks:8000/netsuite/invoices/acme",
+        "url": "=http://mocks:8000/netsuite/invoices/{{ $node[\"Webhook\"].json.body.customer_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -96,
-        -192
+        -64,
+        -256
       ],
       "id": "3144387e-c50f-4acc-ba0a-a2f6d53fa629",
       "name": "Get NetSuite"
     },
     {
       "parameters": {
-        "url": "http://mocks:8000/provisioning/status/acme",
+        "url": "=http://mocks:8000/provisioning/status/{{ $node[\"Webhook\"].json.body.customer_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        96,
-        -192
+        160,
+        -256
       ],
       "id": "0698c4cb-efed-4cec-bf00-459beddba18e",
       "name": "Get Provisioning"
@@ -81,8 +81,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        304,
-        -192
+        384,
+        -256
       ],
       "id": "a7f01d8a-35d5-40b4-b994-1b5c2e403fd4",
       "name": "Get Playbook"
@@ -94,7 +94,7 @@
             {
               "id": "7972dd86-8085-4437-bcd0-1644d38a10e0",
               "name": "customer_id",
-              "value": "=acme",
+              "value": "={{ $node[\"Webhook\"].json.body.customer_id }}",
               "type": "string"
             },
             {
@@ -126,6 +126,12 @@
               "name": "playbook_text",
               "value": "={{ $node[\"Get Playbook\"].json.text }}",
               "type": "string"
+            },
+            {
+              "id": "e07ef77d-772b-4b2a-aa64-abddb17c829a",
+              "name": "rules",
+              "value": "={{ $node[\"Get Rules Config\"].json }}",
+              "type": "object"
             }
           ]
         },
@@ -134,33 +140,11 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        512,
-        -192
+        800,
+        -256
       ],
       "id": "1bb1342f-e32f-4618-ad13-5e65ebe4462a",
       "name": "Build State"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Today's date: {{ $now.format('yyyy-LL-dd') }}\n\nPlaybook policy documents:\n{{ $json.playbook_text }}\n\nCustomer state:\n{{ JSON.stringify({ customer_id: $json.customer_id, salesforce: $json.salesforce, clm: $json.clm, netsuite: $json.netsuite, provisioning: $json.provisioning }, null, 2) }}\n",
-        "messages": {
-          "messageValues": [
-            {
-              "message": "You are a Customer Success onboarding risk assessor. You will be given a customer's current state (Salesforce opportunity, CLM contract, NetSuite invoice, and provisioning checklist) plus the full text of three playbook policy documents. Assess the account's risk using ONLY the playbook rules provided -- do not invent policy.  \n\nRespond with STRICT JSON only. No markdown code fences, no prose outside the JSON. Match exactly this shape: \n\n{   \n\"risk_level\": \"low\" | \"medium\" | \"high\",   \n\"risks\": [\"...\"],   \n\"summary\": \"2-3 sentence human-readable status for the CS team\",   \n\"recommended_action\": \"none\" | \"notify\" | \"nudge_customer\" | \"create_task\",   \n\"reasoning\": \"1-2 sentences citing the specific playbook rule involved\" \n}  \n\nCite the specific playbook rule that triggered each risk, both in \"risks\" and in \"reasoning\"."
-            }
-          ]
-        },
-        "batching": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.chainLlm",
-      "typeVersion": 1.9,
-      "position": [
-        720,
-        -192
-      ],
-      "id": "800afeeb-5506-4ca4-a6d5-41ae03262f8a",
-      "name": "LLM Assessment"
     },
     {
       "parameters": {
@@ -175,8 +159,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.5,
       "position": [
-        656,
-        16
+        1184,
+        -64
       ],
       "id": "aab64bfe-ea9a-47ec-9aa6-df43dd2baad8",
       "name": "Anthropic Chat Model",
@@ -186,19 +170,6 @@
           "name": "Anthropic account"
         }
       }
-    },
-    {
-      "parameters": {
-        "jsCode": "const raw = $json.text;\n\nlet jsonText = null;\nconst fenceMatch = raw.match(/```json\\s*([\\s\\S]*?)```/i) || raw.match(/```\\s*([\\s\\S]*?)```/);\nif (fenceMatch) {\n  jsonText = fenceMatch[1].trim();\n} else {\n  const start = raw.indexOf('{');\n  const end = raw.lastIndexOf('}');\n  if (start !== -1 && end !== -1 && end > start) {\n    jsonText = raw.slice(start, end + 1);\n  }\n}\n\nif (!jsonText) {\n  throw new Error('No JSON object found in LLM response: ' + raw);\n}\n\nlet verdict;\ntry {\n  verdict = JSON.parse(jsonText);\n} catch (err) {\n  throw new Error('Failed to parse LLM JSON: ' + err.message + '\\nRaw text: ' + jsonText);\n}\n\nconst requiredFields = ['risk_level', 'risks', 'summary', 'recommended_action', 'reasoning'];\nfor (const field of requiredFields) {\n  if (!(field in verdict)) {\n    throw new Error(`LLM verdict missing required field: ${field}`);\n  }\n}\n\nreturn [{\n  json: {\n    customer_id: $node[\"Build State\"].json.customer_id,\n    state: {\n      salesforce: $node[\"Build State\"].json.salesforce,\n      clm: $node[\"Build State\"].json.clm,\n      netsuite: $node[\"Build State\"].json.netsuite,\n      provisioning: $node[\"Build State\"].json.provisioning,\n    },\n    verdict,\n  },\n}];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1040,
-        -192
-      ],
-      "id": "849a0ca1-d3f1-4060-bd8c-1d56841da530",
-      "name": "Parse Verdict"
     },
     {
       "parameters": {
@@ -212,8 +183,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1216,
-        -192
+        1872,
+        -416
       ],
       "id": "9aeec432-64a7-4aae-8ada-d8313817bd88",
       "name": "Slack Notify"
@@ -224,20 +195,199 @@
         "url": "http://mocks:8000/audit",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  run_id: $execution.id,\n  trigger: \"webhook:contract_signed\",\n  customer_id: $node[\"Parse Verdict\"].json.customer_id,\n  state_snapshot: $node[\"Parse Verdict\"].json.state,\n  llm_verdict: $node[\"Parse Verdict\"].json.verdict,\n  action_taken: \"notify\"\n} }}",
+        "jsonBody": "={{ {\n  run_id: $execution.id,\n  trigger: \"webhook:contract_signed\",\n  customer_id: $node[\"Parse Narration\"].json.customer_id,\n  state_snapshot: $node[\"Parse Narration\"].json.state,\n  llm_verdict: $node[\"Parse Narration\"].json.verdict,\n  action_taken: $node[\"Parse Narration\"].json.verdict.risk_level === \"low\"\n    ? \"none\"\n    : ($node[\"Parse Narration\"].json.verdict.recommended_action === \"nudge_customer\" && $node[\"Parse Narration\"].json.nudge_eligible_steps.length > 0\n        ? \"notify+nudge\"\n        : \"notify\")\n} }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1392,
-        -192
+        2400,
+        -256
       ],
       "id": "5c1120b9-c038-41ff-9714-bd4ab41e55c2",
       "name": "Write Audit"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b34f27a1-eb9a-43e7-ae81-ad9d90f12635",
+              "leftValue": "={{ $json.verdict.risk_level }}",
+              "rightValue": "low",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1680,
+        -256
+      ],
+      "id": "7b864ce7-795c-4c5e-aede-64ed9e496a83",
+      "name": "Should Notify?"
+    },
+    {
+      "parameters": {
+        "url": "http://mocks:8000/playbook/rules",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        592,
+        -256
+      ],
+      "id": "a7b30432-da6b-4fec-a6eb-efdd33a74a94",
+      "name": "Get Rules Config"
+    },
+    {
+      "parameters": {
+        "jsCode": "function businessDaysBetween(startIso, endIso) {\n  const start = new Date(startIso + 'T00:00:00Z');\n  const end = new Date(endIso + 'T00:00:00Z');\n  let count = 0;\n  const cur = new Date(start);\n  cur.setUTCDate(cur.getUTCDate() + 1);\n  while (cur <= end) {\n    const day = cur.getUTCDay();\n    if (day !== 0 && day !== 6) count++;\n    cur.setUTCDate(cur.getUTCDate() + 1);\n  }\n  return count;\n}\n\nfunction calendarDaysBetween(startIso, endIso) {\n  const start = new Date(startIso + 'T00:00:00Z');\n  const end = new Date(endIso + 'T00:00:00Z');\n  return Math.round((end - start) / 86400000);\n}\n\nconst item = $input.first().json;\nconst today = $now.toFormat('yyyy-LL-dd');\nconst { salesforce, clm, netsuite, provisioning, rules, customer_id, playbook_text } = item;\n\nconst issuanceWindowDays = rules.invoicing_policy.issuance_window_business_days;\nconst paymentWindowDays = rules.invoicing_policy.payment_window_days;\nconst highOverdueThreshold = rules.escalation_policy.high_customer_overdue_days_threshold;\n\nlet issuanceBreach = false;\nif (netsuite.invoice_status === 'not_created') {\n  issuanceBreach = businessDaysBetween(clm.signed_date, today) > issuanceWindowDays;\n}\n\nlet paymentBreach = false;\nif (netsuite.invoice_status === 'issued') {\n  paymentBreach = calendarDaysBetween(netsuite.issued_date, today) > paymentWindowDays;\n}\n\nconst overdueSteps = provisioning.steps.filter(s => s.status !== 'done' && s.due_date < today);\nconst customerOverdue = overdueSteps.filter(s => s.owner === 'customer');\nconst csOverdue = overdueSteps.filter(s => s.owner === 'cs');\n\nconst twoOrMoreOverdueWithCustomer = overdueSteps.length >= 2 && customerOverdue.length >= 1;\nconst worstCustomerOverdue = customerOverdue.filter(s => calendarDaysBetween(s.due_date, today) > highOverdueThreshold);\n\nlet risk_level = 'low';\nconst risks = [];\n\nif (issuanceBreach) {\n  risk_level = 'high';\n  risks.push(`invoicing-policy issuance-window breach: invoice not created more than ${issuanceWindowDays} business days after signed_date (${clm.signed_date})`);\n}\nif (twoOrMoreOverdueWithCustomer) {\n  risk_level = 'high';\n  risks.push(`escalation-policy HIGH: ${overdueSteps.length} overdue provisioning step(s) including customer-owned step(s) (${customerOverdue.map(s => s.name).join(', ')})`);\n}\nif (worstCustomerOverdue.length > 0) {\n  risk_level = 'high';\n  risks.push(`escalation-policy HIGH: customer-owned step(s) more than ${highOverdueThreshold} days overdue (${worstCustomerOverdue.map(s => s.name).join(', ')})`);\n}\n\nif (risk_level !== 'high') {\n  if (paymentBreach) {\n    risk_level = 'medium';\n    risks.push(`invoicing-policy payment-window breach: invoice issued ${netsuite.issued_date}, unpaid after ${calendarDaysBetween(netsuite.issued_date, today)} days (> ${paymentWindowDays}-day window)`);\n  }\n  if (csOverdue.length > 0 && customerOverdue.length === 0) {\n    risk_level = 'medium';\n    risks.push(`provisioning-checklist: cs-owned overdue step(s) with no customer-owned steps overdue (${csOverdue.map(s => s.name).join(', ')})`);\n  }\n}\n\nlet recommended_action = risk_level !== 'low' ? 'notify' : 'none';\nif (customerOverdue.length > 0) {\n  recommended_action = 'nudge_customer';\n}\n\nreturn [{\n  json: {\n    customer_id,\n    state: { salesforce, clm, netsuite, provisioning },\n    playbook_text,\n    classification: { risk_level, recommended_action, risks },\n    nudge_eligible_steps: customerOverdue,\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        -256
+      ],
+      "id": "358bd736-0cba-44b6-85a4-111d2548184f",
+      "name": "Classify"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Today's date: {{ $now.format('yyyy-LL-dd') }}\n\nPlaybook policy documents:\n{{ $json.playbook_text }}\n\nCustomer state:\n{{ JSON.stringify($json.state, null, 2) }}\n\nPre-computed classification (do not change these values, just explain them):\n{{ JSON.stringify($json.classification, null, 2) }}\n",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a Customer Success onboarding assistant. You will be given a\ncustomer's current state, the full text of three playbook policy\ndocuments, and a risk classification that has ALREADY been computed\ndeterministically by a separate rules engine (risk_level,\nrecommended_action, and the specific risks[] that triggered it).\n\nYour job is ONLY to write a clear, human-readable explanation for the CS\nteam -- you do NOT decide the risk level or recommended action; those are\nfixed inputs, not yours to change.\n\nRespond with STRICT JSON only. No markdown code fences, no prose outside\nthe JSON. Match exactly this shape:\n{\n  \"summary\": \"2-3 sentence human-readable status for the CS team\",\n  \"reasoning\": \"1-2 sentences citing the specific playbook rule(s) involved, matching the given risks\"\n}\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1184,
+        -256
+      ],
+      "id": "800afeeb-5506-4ca4-a6d5-41ae03262f8a",
+      "name": "LLM Narrate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.text;\n\nlet jsonText = null;\nconst fenceMatch = raw.match(/```json\\s*([\\s\\S]*?)```/i) || raw.match(/```\\s*([\\s\\S]*?)```/);\nif (fenceMatch) {\n  jsonText = fenceMatch[1].trim();\n} else {\n  const start = raw.indexOf('{');\n  const end = raw.lastIndexOf('}');\n  if (start !== -1 && end !== -1 && end > start) {\n    jsonText = raw.slice(start, end + 1);\n  }\n}\n\nif (!jsonText) {\n  throw new Error('No JSON object found in LLM response: ' + raw);\n}\n\nlet narration;\ntry {\n  narration = JSON.parse(jsonText);\n} catch (err) {\n  throw new Error('Failed to parse LLM JSON: ' + err.message + '\\nRaw text: ' + jsonText);\n}\n\nconst requiredFields = ['summary', 'reasoning'];\nfor (const field of requiredFields) {\n  if (!(field in narration)) {\n    throw new Error(`LLM narration missing required field: ${field}`);\n  }\n}\n\nconst classifyOutput = $node[\"Classify\"].json;\n\nreturn [{\n  json: {\n    customer_id: classifyOutput.customer_id,\n    state: classifyOutput.state,\n    nudge_eligible_steps: classifyOutput.nudge_eligible_steps,\n    verdict: {\n      risk_level: classifyOutput.classification.risk_level,\n      recommended_action: classifyOutput.classification.recommended_action,\n      risks: classifyOutput.classification.risks,\n      summary: narration.summary,\n      reasoning: narration.reasoning,\n    },\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        -256
+      ],
+      "id": "849a0ca1-d3f1-4060-bd8c-1d56841da530",
+      "name": "Parse Narration"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "64a29204-b55e-4c01-81ca-776606be23f8",
+              "leftValue": "={{ $node[\"Parse Narration\"].json.verdict.recommended_action }}",
+              "rightValue": "nudge_customer",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "145ce9ff-f775-45c8-a966-abaaafecdf92",
+              "leftValue": "={{ $node[\"Parse Narration\"].json.nudge_eligible_steps.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2048,
+        -256
+      ],
+      "id": "ad80aa7b-4668-47ea-aa0f-928d47f43b71",
+      "name": "Should Nudge?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mocks:8000/provisioning/nudge",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  customer_id: $node[\"Parse Narration\"].json.customer_id,\n  message: `Hi! This is a friendly reminder that the following onboarding step(s) are still outstanding: ${$node[\"Parse Narration\"].json.nudge_eligible_steps.map(s => `${s.name} (was due ${s.due_date})`).join(', ')}. Please complete these at your earliest convenience so we can keep your onboarding on track.`\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2240,
+        -416
+      ],
+      "id": "8cb5f8f7-e0f6-4e5e-9e9a-220d33622eec",
+      "name": "Send Nudge"
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "user-agent": "curl/7.75.0",
+            "accept": "*/*",
+            "content-type": "application/json",
+            "content-length": "83"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "event": "contract_signed",
+            "customer_id": "acme",
+            "timestamp": "2026-07-17T00:00:00Z"
+          },
+          "webhookUrl": "http://localhost:5678/webhook-test/contract_signed",
+          "executionMode": "test"
+        }
+      }
+    ]
+  },
   "connections": {
     "Webhook": {
       "main": [
@@ -298,7 +448,7 @@
       "main": [
         [
           {
-            "node": "Build State",
+            "node": "Get Rules Config",
             "type": "main",
             "index": 0
           }
@@ -309,7 +459,7 @@
       "main": [
         [
           {
-            "node": "LLM Assessment",
+            "node": "Classify",
             "type": "main",
             "index": 0
           }
@@ -320,25 +470,25 @@
       "ai_languageModel": [
         [
           {
-            "node": "LLM Assessment",
+            "node": "LLM Narrate",
             "type": "ai_languageModel",
             "index": 0
           }
         ]
       ]
     },
-    "LLM Assessment": {
+    "Slack Notify": {
       "main": [
         [
           {
-            "node": "Parse Verdict",
+            "node": "Should Nudge?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Parse Verdict": {
+    "Should Notify?": {
       "main": [
         [
           {
@@ -346,10 +496,79 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Should Nudge?",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
-    "Slack Notify": {
+    "Get Rules Config": {
+      "main": [
+        [
+          {
+            "node": "Build State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LLM Narrate": {
+      "main": [
+        [
+          {
+            "node": "Parse Narration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify": {
+      "main": [
+        [
+          {
+            "node": "LLM Narrate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Narration": {
+      "main": [
+        [
+          {
+            "node": "Should Notify?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Nudge?": {
+      "main": [
+        [
+          {
+            "node": "Send Nudge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write Audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Nudge": {
       "main": [
         [
           {
@@ -366,7 +585,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "f993499e-2fb1-4e25-8f95-908af40b0288",
+  "versionId": "6cd2648f-ae95-489a-8d16-891336be5b01",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "de76667ac4edc932d0812c689cd91c664e2a282884accdcbbd2864350b14e6a5"

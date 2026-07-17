@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -18,3 +19,9 @@ def get_playbook():
         text = (PLAYBOOK_DIR / filename).read_text()
         sections.append(f"## {filename}\n\n{text}")
     return {"text": "\n\n".join(sections)}
+
+
+@router.get("/rules")
+def get_rules():
+    logger.info("GET /playbook/rules")
+    return json.loads((PLAYBOOK_DIR / "rules.json").read_text())

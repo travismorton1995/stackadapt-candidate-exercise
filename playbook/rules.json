@@ -1,0 +1,9 @@
+{
+  "invoicing_policy": {
+    "issuance_window_business_days": 5,
+    "payment_window_days": 15
+  },
+  "escalation_policy": {
+    "high_customer_overdue_days_threshold": 7
+  }
+}
