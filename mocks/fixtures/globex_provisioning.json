@@ -1,0 +1,9 @@
+{
+  "customer_id": "globex",
+  "steps": [
+    { "name": "Kickoff call scheduled", "owner": "cs", "status": "done", "due_date": "2026-07-17" },
+    { "name": "Admin account provisioned", "owner": "cs", "status": "done", "due_date": "2026-07-18" },
+    { "name": "Data import file submitted", "owner": "customer", "status": "in_progress", "due_date": "2026-07-20" },
+    { "name": "Go-live", "owner": "cs", "status": "pending", "due_date": "2026-07-25" }
+  ]
+}

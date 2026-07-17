@@ -2,10 +2,19 @@
 
 ## Risk levels
 
+Provisioning-driven severity is gated by **ownership**, not just by how many
+days overdue something is. This is deliberate: a `cs`-owned bottleneck has no
+autonomous remediation available regardless of how stale it gets, so escalating
+it to HIGH wouldn't change what the agent can do about it. A `customer`-owned
+overdue step is different -- it's the exact condition that makes an autonomous
+nudge both safe and useful, so it's what actually earns HIGH.
+
 - **HIGH** — any of: invoicing-policy issuance-window breach; two or more
-  overdue provisioning steps; any overdue step more than 7 days past due.
-- **MEDIUM** — any of: invoicing-policy payment-window breach; one overdue
-  provisioning step; provisioning blocked on a single `cs`-owned step.
+  overdue provisioning steps where at least one is `customer`-owned; any
+  `customer`-owned overdue step more than 7 days past due.
+- **MEDIUM** — any of: invoicing-policy payment-window breach; provisioning
+  blocked on one or more `cs`-owned overdue steps with no `customer`-owned
+  step overdue.
 - **LOW** — nothing overdue, invoice on track relative to policy windows.
 
 ## How risk_level and recommended_action combine
@@ -45,10 +54,10 @@ system action.
 
 ## Summary table
 
-| Condition                                              | risk_level | recommended_action |
-|---------------------------------------------------------|------------|---------------------|
-| Nothing overdue, invoice on track                        | low        | none                |
-| Invoice issued, unpaid past 15-day window                 | medium     | notify              |
-| Provisioning blocked on one `cs`-owned overdue step        | medium     | notify              |
-| Invoice not created past 5-business-day window            | high       | notify              |
-| Overdue `customer`-owned provisioning step(s), invoice OK  | high       | nudge_customer      |
+| Condition                                                        | risk_level | recommended_action |
+|--------------------------------------------------------------------|------------|---------------------|
+| Nothing overdue, invoice on track                                  | low        | none                |
+| Invoice issued, unpaid past 15-day window, no overdue steps         | medium     | notify              |
+| Provisioning blocked on `cs`-owned overdue step(s) only              | medium     | notify              |
+| Invoice not created past 5-business-day window                      | high       | notify              |
+| Overdue `customer`-owned provisioning step(s), invoice OK            | high       | nudge_customer      |

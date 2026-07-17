@@ -1,0 +1,7 @@
+{
+  "customer_id": "initech",
+  "invoice_status": "issued",
+  "issued_date": "2026-07-01",
+  "paid_date": null,
+  "amount": 210000
+}
