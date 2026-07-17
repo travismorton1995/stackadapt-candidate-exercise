@@ -7,6 +7,7 @@ services:
       - FLAKY_RATE=${FLAKY_RATE:-0.3}
     volumes:
       - ./mocks:/app
+      - ./playbook:/app/playbook:ro
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
