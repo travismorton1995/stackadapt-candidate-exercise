@@ -6,7 +6,8 @@ quote-to-onboard stack.
 
 My solution is an AI agent that monitors client onboarding across a mocked SaaS stack (Salesforce
 CRM → CLM → NetSuite ERP → SaaS provisioning), detects risks and stalls, notifies the CS team via
-Slack, and takes a narrow set of safe autonomous actions (idempotent customer nudges). It operates
+Slack, and takes a narrow set of safe autonomous actions (customer nudges that are safe to
+repeat, plus logged follow-ups for anything that needs a human). It operates
 both autonomously (event-driven + a twice-daily schedule sweep) and via a chat interface for CS
 users. Orchestration is built in n8n; the mock systems are a real FastAPI app. This satisfies the
 brief's mock-API-integration, LLM-generated-summary, and error-handling requirements directly,
