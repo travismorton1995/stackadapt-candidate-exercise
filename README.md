@@ -1,9 +1,8 @@
 # CS Onboarding Agent — StackAdapt Candidate Exercise
 
 Solution design and prototype for the "Enterprise Agent Solutions Developer"
-candidate exercise (Travis Morton). See [CLAUDE.md](CLAUDE.md) for the full
-build brief and [docs/solution-design.md](docs/solution-design.md) for the
-design doc.
+candidate exercise (Travis Morton). See [docs/solution-design.md](docs/solution-design.md)
+for the design doc.
 
 ## What this is
 

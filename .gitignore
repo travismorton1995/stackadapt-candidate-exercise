@@ -1,6 +1,9 @@
 # secrets
 .env
 
+# internal planning doc -- not for sharing with the repo's audience
+CLAUDE.md
+
 # python
 __pycache__/
 *.pyc
