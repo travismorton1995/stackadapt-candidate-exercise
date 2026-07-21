@@ -65,7 +65,9 @@ The exercise brief's four example applications of the AI agent all show up concr
   from live data by code in both Monitor and Chat, never trusted from the LLM's own claims. Chat's
   action is additionally confirmation-gated at the code level — `draft_nudge(customer_id,
   confirmed)` only calls `/provisioning/nudge` when `confirmed: true`, and no code path reaches
-  that call without a prior human turn.
+  that call without a prior human turn. The policy also allowlists `create_task` for CS-owned
+  follow-ups, but it only ever logs a recommended follow-up to the audit trail rather than
+  executing anything (see Trade-offs for why).
 
 ## Orchestration
 
@@ -92,6 +94,15 @@ effects.
 **Accepted repetition, not a bug.** An unresolved high-risk account gets re-notified on every
 schedule tick; deduping would need per-customer state tracking, scoped out rather than built
 speculatively. The nudge action doesn't share this problem — its idempotency is server-side.
+
+**A narrow action allowlist, on purpose.** `nudge_customer` is the only action that actually
+executes a side effect against a live system. `create_task` — the other allowlisted action, for
+CS-owned follow-ups that aren't safe to auto-remediate — has nothing to call, because no
+ticketing system is mocked here. It's logged to the audit trail and always paired with a Slack
+notification so a human still picks it up, but "logging" is standing in for what would be a real
+integration (Jira, Asana, an internal tool) in production. This is a deliberate scope cut, not a
+gap discovered late: the two-action allowlist was sized to what could be fully verified end to
+end in the time available, rather than built wide and left partially untested.
 
 **Security.** Secrets are never committed; the mock APIs themselves have no authentication — a
 reasonable cut for a local prototype whose real risk surface is agent behavior, not endpoint
