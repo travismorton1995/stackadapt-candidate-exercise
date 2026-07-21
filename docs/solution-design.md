@@ -2,9 +2,13 @@
 
 **Scenario 1: Sales / Customer Success onboarding.** The job description names Salesforce and NetSuite
 explicitly and calls out "customer onboarding" as a target domain, mirroring StackAdapt's own
-quote-to-onboard stack. My solution is an n8n-orchestrated agent that monitors onboarding health
-across four mocked systems both autonomously and conversationally, using a deterministic rules
-engine for risk classification and Claude for narration and conversation — satisfying the
+quote-to-onboard stack.
+
+My solution is an AI agent that monitors client onboarding across a mocked SaaS stack (Salesforce
+CRM → CLM → NetSuite ERP → SaaS provisioning), detects risks and stalls, notifies the CS team via
+Slack, and takes a narrow set of safe autonomous actions (idempotent customer nudges). It operates
+both autonomously (event-driven + a twice-daily schedule sweep) and via a chat interface for CS
+users. Orchestration is built in n8n; the mock systems are a real FastAPI app. This satisfies the
 brief's mock-API-integration, LLM-generated-summary, and error-handling requirements directly,
 plus its ask for both autonomous and interactive operation.
 
