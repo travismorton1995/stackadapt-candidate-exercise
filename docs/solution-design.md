@@ -1,9 +1,6 @@
 # Solution Design — CS Onboarding Agent
 
-Here is the scenario I picked from the case study, and a short summary of the solution I
-designed and how it meets the brief.
-
-**Scenario 1: Sales / Customer Success onboarding.** The JD names Salesforce and NetSuite
+**Scenario 1: Sales / Customer Success onboarding.** The job description names Salesforce and NetSuite
 explicitly and calls out "customer onboarding" as a target domain, mirroring StackAdapt's own
 quote-to-onboard stack. My solution is an n8n-orchestrated agent that monitors onboarding health
 across four mocked systems both autonomously and conversationally, using a deterministic rules
@@ -19,13 +16,13 @@ API (Claude Sonnet 5)** for two distinct LLM roles — narrating a pre-computed 
 and powering the full conversational agent in Chat. Three n8n workflows:
 
 - **Monitor** (autonomous) — a Webhook (event-driven, fired on simulated `contract_signed`/
-  `invoice_paid`) and a Schedule Trigger (`0 7,15 * * *`, twice daily — matched to the multi-day
-  timescale of real onboarding, not a demo-compressed interval) both feed the same assessment
+  `invoice_paid`) and a Schedule Trigger (twice daily — matched to the multi-day
+  timescale of real onboarding) both feed the same assessment
   chain. The schedule sweep pulls its customer list from a live `GET /salesforce/opportunities`
-  endpoint rather than a hardcoded list, so a newly signed customer is automatically included.
+  endpoint, so newly signed customers are automatically included.
 - **Chat** (conversational) — an AI Agent (Claude Sonnet 5) with two tools and session memory.
 - **Error Handler** — attached to both workflows' error-workflow setting; failures are logged to
-  the audit trail and posted to `#ops-alerts`.
+  the audit trail and posted to `#ops-alerts` mock slack channel.
 
 ## How the AI agent is applied
 
@@ -34,16 +31,16 @@ Core principle: **the LLM narrates, code decides.** `Classify` is a deterministi
 `recommended_action`/`risks` from structured state — business-day issuance math, payment-window
 math, ownership-gated overdue logic. The LLM is never asked to classify; it writes a summary of a
 verdict it didn't produce, and is explicitly told not to change it. This isn't a compromise — the
-brief treats "LLM or rules-based logic" as alternatives, and structured inputs with crisp
+exercise brief treats "LLM or rules-based logic" as alternatives, and structured inputs with crisp
 thresholds are a better fit for code than inference, confirmed empirically: an earlier LLM-driven
 version of this same classification miscounted business days and once produced an inconsistent
 notify/nudge decision the deterministic version doesn't.
 
-The brief's four example applications of the AI agent all show up concretely:
+The exercise brief's four example applications of the AI agent all show up concretely:
 
 - **Generating human-readable summaries.** `LLM Narrate` (Monitor) writes `summary`/`reasoning`
   from the pre-computed verdict, skipped entirely when `recommended_action === "none"` (cutting
-  LLM calls roughly in half per sweep, since a clean account needs no narrative at all). Chat's
+  LLM calls for customers who are on track, since a clean account needs no narrative at all). Chat's
   AI Agent writes every reply conversationally.
 - **Enriching details.** Chat's `get_customer_state(customer_id)` tool merges four separate
   systems (Salesforce, CLM, NetSuite, provisioning) into one view on demand.
@@ -60,8 +57,7 @@ The brief's four example applications of the AI agent all show up concretely:
 ## Orchestration
 
 - **Event-driven triggers.** A Webhook reacts to simulated `contract_signed`/`invoice_paid`
-  events; a Schedule Trigger independently sweeps every customer twice daily. Both are genuine
-  triggers, not polling dressed up as one.
+  events; a Schedule Trigger independently sweeps every customer twice daily.
 - **API/webhook flows.** Every inter-system call is plain REST against the mock API; actions
   (Slack post, nudge, audit write) are themselves POST calls, gated behind deterministic `IF`
   nodes reading the classification, never behind the LLM's own judgment about whether to act.
@@ -97,8 +93,7 @@ reasonable cut for a local prototype whose real risk surface is agent behavior, 
 access, but production would need signed webhooks or mTLS on every one of these calls.
 
 **Governance.** Every run — autonomous or chat-initiated — writes trigger source, full state
-snapshot, and verdict to the audit trail as a first-class feature, matching the JD's governance
-emphasis directly.
+snapshot, and verdict to the audit trail as a first-class feature.
 
 **Scalability.** SQLite and one n8n instance suit 3 customers and one sweep. Real volume would
 need a proper database, queued sweeps instead of fetch-all-then-fan-out, and n8n's own scaling
