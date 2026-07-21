@@ -49,8 +49,11 @@ behind deterministic `IF` nodes reading the classification, never behind the LLM
 
 ## Trade-offs and assumptions
 
-**Reliability.** Retries (3 tries, fixed delay — not true exponential backoff, a known
-simplification) apply to read-only calls and the one idempotent action (`/provisioning/nudge`,
+**Reliability.** The NetSuite mock deliberately fails ~20% of calls (`FLAKY_RATE=0.2`) so the
+system has a real transient failure to survive, not just a claimed one — this is the demo's
+concrete answer to the brief's "logging or error handling approach" requirement. Retries (3
+tries, fixed delay — not true exponential backoff, a known simplification) apply to read-only
+calls and the one idempotent action (`/provisioning/nudge`,
 keyed per customer/day); deliberately not to `/slack/notify` or `/audit`, since blind retries on
 non-idempotent calls risk duplicate side effects.
 
@@ -65,10 +68,6 @@ correlate async results.
 **Accepted repetition, not a bug.** An unresolved high-risk account gets re-notified on every
 schedule tick; deduping would need per-customer state tracking, scoped out rather than built
 speculatively. The nudge action doesn't share this problem — its idempotency is server-side.
-
-**Fixture fragility.** One fixture drifted from LOW to HIGH risk purely from real time passing
-between authoring and testing (caught via the Chat agent's own live-date reasoning). A production
-system would compute due-dates relative to signature date at read-time, not store static ones.
 
 **Security.** Secrets are never committed; the mock APIs themselves have no authentication — a
 reasonable cut for a local prototype whose real risk surface is agent behavior, not endpoint

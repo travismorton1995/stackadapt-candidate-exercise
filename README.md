@@ -32,7 +32,7 @@ real FastAPI app.
    - `N8N_ENCRYPTION_KEY` — any random string (e.g. `openssl rand -hex 32`).
      n8n uses this to encrypt saved credentials. Keep it stable once set.
    - `FLAKY_RATE` — fraction of `/netsuite/invoices` calls that return HTTP
-     500, used to demo retry handling. Default `0.3`. Set to `0` to disable.
+     500, used to demo retry handling. Default `0.2`. Set to `0` to disable.
 
 2. Start the stack:
    ```
