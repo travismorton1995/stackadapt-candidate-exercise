@@ -127,8 +127,7 @@ sinks, not collaboration surfaces, and would likely stay plain REST.
 ## Appendix: Workato mapping
 
 The job description names Workato (and Zapier) as StackAdapt's own automation platforms. n8n was
-used here instead — permitted by the brief, and better suited to a fast, code-adjacent prototype
-— but the patterns below carry over directly, since they aren't n8n-specific.
+used here instead — permitted by the brief, but the patterns below carry over directly, since they aren't n8n-specific.
 
 | n8n pattern | Workato equivalent |
 |---|---|
