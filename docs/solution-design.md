@@ -28,6 +28,15 @@ and powering the full conversational agent in Chat. Three n8n workflows:
 - **Error Handler** — attached to both workflows' error-workflow setting; failures are logged to
   the audit trail and posted to `#ops-alerts` mock slack channel.
 
+Monitor's pipeline, at the stage level (the real workflow has ~18 nodes; this is the shape, not
+a literal node list):
+
+```
+Webhook  ─┐
+          ├─→ Fetch State → Classify (deterministic) → Narrate (LLM, conditional) → Notify/Nudge (gated) → Audit
+Schedule ─┘
+```
+
 ## How the AI agent is applied
 
 Core principle: **the LLM narrates, code decides.** `Classify` is a deterministic function
@@ -116,6 +125,10 @@ sinks, not collaboration surfaces, and would likely stay plain REST.
 ---
 
 ## Appendix: Workato mapping
+
+The job description names Workato (and Zapier) as StackAdapt's own automation platforms. n8n was
+used here instead — permitted by the brief, and better suited to a fast, code-adjacent prototype
+— but the patterns below carry over directly, since they aren't n8n-specific.
 
 | n8n pattern | Workato equivalent |
 |---|---|
