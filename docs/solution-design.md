@@ -76,14 +76,6 @@ one idempotent action (`/provisioning/nudge`, keyed per customer/day); deliberat
 `/slack/notify` or `/audit`, since blind retries on non-idempotent calls risk duplicate side
 effects.
 
-**A concurrency bug worth naming.** Adding the multi-customer schedule sweep alongside the
-single-customer webhook path surfaced a real issue: n8n's implicit node-reference resolution
-isn't reliable once several items flow through divergent branches in one execution — it silently
-dropped one customer's item and duplicated another's before this was understood. Fix: every
-cross-node reference downstream of classification now uses an explicit `customer_id` correlation
-lookup instead of implicit item-pairing — the same principle any distributed system uses to
-correlate async results.
-
 **Accepted repetition, not a bug.** An unresolved high-risk account gets re-notified on every
 schedule tick; deduping would need per-customer state tracking, scoped out rather than built
 speculatively. The nudge action doesn't share this problem — its idempotency is server-side.
@@ -98,6 +90,15 @@ snapshot, and verdict to the audit trail as a first-class feature.
 **Scalability.** SQLite and one n8n instance suit 3 customers and one sweep. Real volume would
 need a proper database, queued sweeps instead of fetch-all-then-fan-out, and n8n's own scaling
 story past a few hundred customers.
+
+**Playbook scale.** The 3 policy docs here are short enough to inject in full on every narration
+call. A real playbook with dozens of policies across product tiers and exceptions would break
+that — full-text injection would blow past context budgets and bury the few relevant rules in
+noise. At that point, RAG (chunking the playbook into a vector store and retrieving only the
+sections relevant to a given customer's actual risks) is the right fix for `LLM Narrate`'s
+context. It wouldn't help `Classify`, though — its structured thresholds (`rules.json`) are read
+by field, not searched as text, so that side would scale via a proper rules/config service
+instead, not a vector store.
 
 ## MCP collaboration overview
 
