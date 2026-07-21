@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -12,13 +13,14 @@ router = APIRouter(prefix="/slack", tags=["slack"])
 class NotifyRequest(BaseModel):
     channel: str
     text: str
+    customer_id: Optional[str] = None
 
 
 @router.post("/notify")
 def post_notify(body: NotifyRequest):
     db.log_slack_message(body.channel, body.text)
     logger.info("[SLACK #%s] %s", body.channel, body.text)
-    return {"ok": True}
+    return {"ok": True, "customer_id": body.customer_id}
 
 
 @router.get("/log")

@@ -26,7 +26,7 @@ def post_nudge(body: NudgeRequest):
     nudge_id, is_new = db.get_or_create_nudge(body.customer_id, body.message)
     if is_new:
         logger.info("nudge sent to customer_id=%s nudge_id=%s", body.customer_id, nudge_id)
-        return {"sent": True, "nudge_id": nudge_id}
+        return {"sent": True, "nudge_id": nudge_id, "customer_id": body.customer_id}
 
     logger.info("nudge skipped (already sent today) customer_id=%s nudge_id=%s", body.customer_id, nudge_id)
-    return {"sent": False, "nudge_id": nudge_id, "reason": "already_nudged"}
+    return {"sent": False, "nudge_id": nudge_id, "reason": "already_nudged", "customer_id": body.customer_id}

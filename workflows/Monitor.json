@@ -10,8 +10,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -736,
-        -256
+        -672,
+        -96
       ],
       "id": "7176294e-abaf-4871-857a-190ba681fb32",
       "name": "Webhook",
@@ -19,22 +19,7 @@
     },
     {
       "parameters": {
-        "url": "=http://mocks:8000/salesforce/opportunities/{{ $node[\"Webhook\"].json.body.customer_id }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [
-        -512,
-        -256
-      ],
-      "id": "650e081b-46ad-4572-8485-9fe815fc2705",
-      "name": "Get Salesforce",
-      "retryOnFail": true
-    },
-    {
-      "parameters": {
-        "url": "=http://mocks:8000/clm/contracts/{{ $node[\"Webhook\"].json.body.customer_id }}",
+        "url": "=http://mocks:8000/salesforce/opportunities/{{ $node[\"Normalize Trigger\"].json.customer_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -43,19 +28,34 @@
         -288,
         -256
       ],
+      "id": "650e081b-46ad-4572-8485-9fe815fc2705",
+      "name": "Get Salesforce",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=http://mocks:8000/clm/contracts/{{ $node[\"Normalize Trigger\"].json.customer_id}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -128,
+        -256
+      ],
       "id": "ee3f26bc-a1b3-4bf2-843c-2a52884bf2e4",
       "name": "Get CLM",
       "retryOnFail": true
     },
     {
       "parameters": {
-        "url": "=http://mocks:8000/netsuite/invoices/{{ $node[\"Webhook\"].json.body.customer_id }}",
+        "url": "=http://mocks:8000/netsuite/invoices/{{ $node[\"Normalize Trigger\"].json.customer_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        -64,
+        48,
         -256
       ],
       "id": "3144387e-c50f-4acc-ba0a-a2f6d53fa629",
@@ -64,13 +64,13 @@
     },
     {
       "parameters": {
-        "url": "=http://mocks:8000/provisioning/status/{{ $node[\"Webhook\"].json.body.customer_id }}",
+        "url": "=http://mocks:8000/provisioning/status/{{ $node[\"Normalize Trigger\"].json.customer_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        160,
+        208,
         -256
       ],
       "id": "0698c4cb-efed-4cec-bf00-459beddba18e",
@@ -85,7 +85,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        384,
+        368,
         -256
       ],
       "id": "a7f01d8a-35d5-40b4-b994-1b5c2e403fd4",
@@ -99,7 +99,7 @@
             {
               "id": "7972dd86-8085-4437-bcd0-1644d38a10e0",
               "name": "customer_id",
-              "value": "={{ $node[\"Webhook\"].json.body.customer_id }}",
+              "value": "={{ $node[\"Normalize Trigger\"].json.customer_id }}",
               "type": "string"
             },
             {
@@ -145,7 +145,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        800,
+        672,
         -256
       ],
       "id": "1bb1342f-e32f-4618-ad13-5e65ebe4462a",
@@ -165,7 +165,7 @@
       "typeVersion": 1.5,
       "position": [
         1184,
-        -64
+        -352
       ],
       "id": "aab64bfe-ea9a-47ec-9aa6-df43dd2baad8",
       "name": "Anthropic Chat Model",
@@ -182,13 +182,17 @@
         "url": "http://mocks:8000/slack/notify",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  channel: \"#cs-onboarding\",\n  text: `[${$json.verdict.risk_level.toUpperCase()}] ${$json.customer_id.toUpperCase()} onboarding update\\n\\n${$json.verdict.summary}\\n\\nRisks:\\n${$json.verdict.risks.map(r => '- ' + r).join('\\n')}\\n\\nReasoning: ${$json.verdict.reasoning}`\n} }}",
-        "options": {}
+        "jsonBody": "={{ {\n  channel: \"#cs-onboarding\",\n  customer_id: $json.customer_id,\n  text: `[${$json.verdict.risk_level.toUpperCase()}] ${$json.customer_id.toUpperCase()} onboarding update\\n\\n${$json.verdict.summary}\\n\\nRisks:\\n${$json.verdict.risks.map(r => '- ' + r).join('\\n')}\\n\\nReasoning: ${$json.verdict.reasoning}`\n} }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        1872,
+        2032,
         -416
       ],
       "id": "9aeec432-64a7-4aae-8ada-d8313817bd88",
@@ -200,13 +204,13 @@
         "url": "http://mocks:8000/audit",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  run_id: $execution.id,\n  trigger: \"webhook:contract_signed\",\n  customer_id: $node[\"Parse Narration\"].json.customer_id,\n  state_snapshot: $node[\"Parse Narration\"].json.state,\n  llm_verdict: $node[\"Parse Narration\"].json.verdict,\n  action_taken: $node[\"Parse Narration\"].json.verdict.risk_level === \"low\"\n    ? \"none\"\n    : ($node[\"Parse Narration\"].json.verdict.recommended_action === \"nudge_customer\" && $node[\"Parse Narration\"].json.nudge_eligible_steps.length > 0\n        ? \"notify+nudge\"\n        : \"notify\")\n} }}",
+        "jsonBody": "={{ {\n  run_id: $execution.id,\n  trigger: $('Normalize Trigger').all().find(n => n.json.customer_id === $json.customer_id).json.trigger_source,\n  customer_id: $json.customer_id,\n  state_snapshot: $('Merge Verdict').all().find(v => v.json.customer_id === $json.customer_id).json.state,\n  llm_verdict: $('Merge Verdict').all().find(v => v.json.customer_id === $json.customer_id).json.verdict,\n  action_taken: $('Merge Verdict').all().find(v => v.json.customer_id === $json.customer_id).json.verdict.risk_level === \"low\"\n    ? \"none\"\n    : ($('Merge Verdict').all().find(v => v.json.customer_id === $json.customer_id).json.verdict.recommended_action === \"nudge_customer\" && $('Merge Verdict').all().find(v => v.json.customer_id === $json.customer_id).json.nudge_eligible_steps.length > 0\n        ? \"notify+nudge\"\n        : \"notify\")\n} }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        2400,
+        2560,
         -256
       ],
       "id": "5c1120b9-c038-41ff-9714-bd4ab41e55c2",
@@ -239,7 +243,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1680,
+        1840,
         -256
       ],
       "id": "7b864ce7-795c-4c5e-aede-64ed9e496a83",
@@ -253,7 +257,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        592,
+        528,
         -256
       ],
       "id": "a7b30432-da6b-4fec-a6eb-efdd33a74a94",
@@ -262,12 +266,12 @@
     },
     {
       "parameters": {
-        "jsCode": "function businessDaysBetween(startIso, endIso) {\n  const start = new Date(startIso + 'T00:00:00Z');\n  const end = new Date(endIso + 'T00:00:00Z');\n  let count = 0;\n  const cur = new Date(start);\n  cur.setUTCDate(cur.getUTCDate() + 1);\n  while (cur <= end) {\n    const day = cur.getUTCDay();\n    if (day !== 0 && day !== 6) count++;\n    cur.setUTCDate(cur.getUTCDate() + 1);\n  }\n  return count;\n}\n\nfunction calendarDaysBetween(startIso, endIso) {\n  const start = new Date(startIso + 'T00:00:00Z');\n  const end = new Date(endIso + 'T00:00:00Z');\n  return Math.round((end - start) / 86400000);\n}\n\nconst item = $input.first().json;\nconst today = $now.toFormat('yyyy-LL-dd');\nconst { salesforce, clm, netsuite, provisioning, rules, customer_id, playbook_text } = item;\n\nconst issuanceWindowDays = rules.invoicing_policy.issuance_window_business_days;\nconst paymentWindowDays = rules.invoicing_policy.payment_window_days;\nconst highOverdueThreshold = rules.escalation_policy.high_customer_overdue_days_threshold;\n\nlet issuanceBreach = false;\nif (netsuite.invoice_status === 'not_created') {\n  issuanceBreach = businessDaysBetween(clm.signed_date, today) > issuanceWindowDays;\n}\n\nlet paymentBreach = false;\nif (netsuite.invoice_status === 'issued') {\n  paymentBreach = calendarDaysBetween(netsuite.issued_date, today) > paymentWindowDays;\n}\n\nconst overdueSteps = provisioning.steps.filter(s => s.status !== 'done' && s.due_date < today);\nconst customerOverdue = overdueSteps.filter(s => s.owner === 'customer');\nconst csOverdue = overdueSteps.filter(s => s.owner === 'cs');\n\nconst twoOrMoreOverdueWithCustomer = overdueSteps.length >= 2 && customerOverdue.length >= 1;\nconst worstCustomerOverdue = customerOverdue.filter(s => calendarDaysBetween(s.due_date, today) > highOverdueThreshold);\n\nlet risk_level = 'low';\nconst risks = [];\n\nif (issuanceBreach) {\n  risk_level = 'high';\n  risks.push(`invoicing-policy issuance-window breach: invoice not created more than ${issuanceWindowDays} business days after signed_date (${clm.signed_date})`);\n}\nif (twoOrMoreOverdueWithCustomer) {\n  risk_level = 'high';\n  risks.push(`escalation-policy HIGH: ${overdueSteps.length} overdue provisioning step(s) including customer-owned step(s) (${customerOverdue.map(s => s.name).join(', ')})`);\n}\nif (worstCustomerOverdue.length > 0) {\n  risk_level = 'high';\n  risks.push(`escalation-policy HIGH: customer-owned step(s) more than ${highOverdueThreshold} days overdue (${worstCustomerOverdue.map(s => s.name).join(', ')})`);\n}\n\nif (risk_level !== 'high') {\n  if (paymentBreach) {\n    risk_level = 'medium';\n    risks.push(`invoicing-policy payment-window breach: invoice issued ${netsuite.issued_date}, unpaid after ${calendarDaysBetween(netsuite.issued_date, today)} days (> ${paymentWindowDays}-day window)`);\n  }\n  if (csOverdue.length > 0 && customerOverdue.length === 0) {\n    risk_level = 'medium';\n    risks.push(`provisioning-checklist: cs-owned overdue step(s) with no customer-owned steps overdue (${csOverdue.map(s => s.name).join(', ')})`);\n  }\n}\n\nlet recommended_action = risk_level !== 'low' ? 'notify' : 'none';\nif (customerOverdue.length > 0) {\n  recommended_action = 'nudge_customer';\n}\n\nreturn [{\n  json: {\n    customer_id,\n    state: { salesforce, clm, netsuite, provisioning },\n    playbook_text,\n    classification: { risk_level, recommended_action, risks },\n    nudge_eligible_steps: customerOverdue,\n  },\n}];\n"
+        "jsCode": "function businessDaysBetween(startIso, endIso) {\n  const start = new Date(startIso + 'T00:00:00Z');\n  const end = new Date(endIso + 'T00:00:00Z');\n  let count = 0;\n  const cur = new Date(start);\n  cur.setUTCDate(cur.getUTCDate() + 1);\n  while (cur <= end) {\n    const day = cur.getUTCDay();\n    if (day !== 0 && day !== 6) count++;\n    cur.setUTCDate(cur.getUTCDate() + 1);\n  }\n  return count;\n}\n\nfunction calendarDaysBetween(startIso, endIso) {\n  const start = new Date(startIso + 'T00:00:00Z');\n  const end = new Date(endIso + 'T00:00:00Z');\n  return Math.round((end - start) / 86400000);\n}\n\nconst today = $now.toFormat('yyyy-LL-dd');\n\nfunction classifyOne(item) {\n  const { salesforce, clm, netsuite, provisioning, rules, customer_id, playbook_text } = item;\n\n  const issuanceWindowDays = rules.invoicing_policy.issuance_window_business_days;\n  const paymentWindowDays = rules.invoicing_policy.payment_window_days;\n  const highOverdueThreshold = rules.escalation_policy.high_customer_overdue_days_threshold;\n\n  let issuanceBreach = false;\n  if (netsuite.invoice_status === 'not_created') {\n    issuanceBreach = businessDaysBetween(clm.signed_date, today) > issuanceWindowDays;\n  }\n\n  let paymentBreach = false;\n  if (netsuite.invoice_status === 'issued') {\n    paymentBreach = calendarDaysBetween(netsuite.issued_date, today) > paymentWindowDays;\n  }\n\n  const overdueSteps = provisioning.steps.filter(s => s.status !== 'done' && s.due_date < today);\n  const customerOverdue = overdueSteps.filter(s => s.owner === 'customer');\n  const csOverdue = overdueSteps.filter(s => s.owner === 'cs');\n\n  const twoOrMoreOverdueWithCustomer = overdueSteps.length >= 2 && customerOverdue.length >= 1;\n  const worstCustomerOverdue = customerOverdue.filter(s => calendarDaysBetween(s.due_date, today) > highOverdueThreshold);\n\n  let risk_level = 'low';\n  const risks = [];\n\n  if (issuanceBreach) {\n    risk_level = 'high';\n    risks.push(`invoicing-policy issuance-window breach: invoice not created more than ${issuanceWindowDays} business days after signed_date (${clm.signed_date})`);\n  }\n  if (twoOrMoreOverdueWithCustomer) {\n    risk_level = 'high';\n    risks.push(`escalation-policy HIGH: ${overdueSteps.length} overdue provisioning step(s) including customer-owned step(s) (${customerOverdue.map(s => s.name).join(', ')})`);\n  }\n  if (worstCustomerOverdue.length > 0) {\n    risk_level = 'high';\n    risks.push(`escalation-policy HIGH: customer-owned step(s) more than ${highOverdueThreshold} days overdue (${worstCustomerOverdue.map(s => s.name).join(', ')})`);\n  }\n\n  if (risk_level !== 'high') {\n    if (paymentBreach) {\n      risk_level = 'medium';\n      risks.push(`invoicing-policy payment-window breach: invoice issued ${netsuite.issued_date}, unpaid after ${calendarDaysBetween(netsuite.issued_date, today)} days (> ${paymentWindowDays}-day window)`);\n    }\n    if (csOverdue.length > 0 && customerOverdue.length === 0) {\n      risk_level = 'medium';\n      risks.push(`provisioning-checklist: cs-owned overdue step(s) with no customer-owned steps overdue (${csOverdue.map(s => s.name).join(', ')})`);\n    }\n  }\n\n  let recommended_action = risk_level !== 'low' ? 'notify' : 'none';\n  if (customerOverdue.length > 0) {\n    recommended_action = 'nudge_customer';\n  }\n\n  return {\n    customer_id,\n    state: { salesforce, clm, netsuite, provisioning },\n    playbook_text,\n    classification: { risk_level, recommended_action, risks },\n    nudge_eligible_steps: customerOverdue,\n  };\n}\n\nreturn $input.all().map(inputItem => ({ json: classifyOne(inputItem.json) }));\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1008,
+        816,
         -256
       ],
       "id": "358bd736-0cba-44b6-85a4-111d2548184f",
@@ -276,11 +280,11 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Today's date: {{ $now.format('yyyy-LL-dd') }}\n\nPlaybook policy documents:\n{{ $json.playbook_text }}\n\nCustomer state:\n{{ JSON.stringify($json.state, null, 2) }}\n\nPre-computed classification (do not change these values, just explain them):\n{{ JSON.stringify($json.classification, null, 2) }}\n",
+        "text": "=Customer ID: {{ $json.customer_id }}\n\nToday's date: {{ $now.format('yyyy-LL-dd') }}\n\nPlaybook policy documents:\n{{ $json.playbook_text }}\n\nCustomer state:\n{{ JSON.stringify($json.state, null, 2) }}\n\nPre-computed classification (do not change these values, just explain them):\n{{ JSON.stringify($json.classification, null, 2) }}",
         "messages": {
           "messageValues": [
             {
-              "message": "You are a Customer Success onboarding assistant. You will be given a\ncustomer's current state, the full text of three playbook policy\ndocuments, and a risk classification that has ALREADY been computed\ndeterministically by a separate rules engine (risk_level,\nrecommended_action, and the specific risks[] that triggered it).\n\nYour job is ONLY to write a clear, human-readable explanation for the CS\nteam -- you do NOT decide the risk level or recommended action; those are\nfixed inputs, not yours to change.\n\nRespond with STRICT JSON only. No markdown code fences, no prose outside\nthe JSON. Match exactly this shape:\n{\n  \"summary\": \"2-3 sentence human-readable status for the CS team\",\n  \"reasoning\": \"1-2 sentences citing the specific playbook rule(s) involved, matching the given risks\"\n}\n"
+              "message": "You are a Customer Success onboarding assistant. You will be given a\ncustomer's current state, the full text of three playbook policy\ndocuments, and a risk classification that has ALREADY been computed\ndeterministically by a separate rules engine (risk_level,\nrecommended_action, and the specific risks[] that triggered it).\n\nYour job is ONLY to write a clear, human-readable explanation for the CS\nteam -- you do NOT decide the risk level or recommended action; those are\nfixed inputs, not yours to change.\n\nRespond with STRICT JSON only. No markdown code fences, no prose outside\nthe JSON. Match exactly this shape:\n{\n  \"customer_id\": \"the customer_id given to you below, copied exactly\",\n  \"summary\": \"2-3 sentence human-readable status for the CS team\",\n  \"reasoning\": \"1-2 sentences citing the specific playbook rule(s) involved, matching the given risks\"\n}\n"
             }
           ]
         },
@@ -290,23 +294,86 @@
       "typeVersion": 1.9,
       "position": [
         1184,
-        -256
+        -480
       ],
       "id": "800afeeb-5506-4ca4-a6d5-41ae03262f8a",
       "name": "LLM Narrate"
     },
     {
       "parameters": {
-        "jsCode": "const raw = $json.text;\n\nlet jsonText = null;\nconst fenceMatch = raw.match(/```json\\s*([\\s\\S]*?)```/i) || raw.match(/```\\s*([\\s\\S]*?)```/);\nif (fenceMatch) {\n  jsonText = fenceMatch[1].trim();\n} else {\n  const start = raw.indexOf('{');\n  const end = raw.lastIndexOf('}');\n  if (start !== -1 && end !== -1 && end > start) {\n    jsonText = raw.slice(start, end + 1);\n  }\n}\n\nif (!jsonText) {\n  throw new Error('No JSON object found in LLM response: ' + raw);\n}\n\nlet narration;\ntry {\n  narration = JSON.parse(jsonText);\n} catch (err) {\n  throw new Error('Failed to parse LLM JSON: ' + err.message + '\\nRaw text: ' + jsonText);\n}\n\nconst requiredFields = ['summary', 'reasoning'];\nfor (const field of requiredFields) {\n  if (!(field in narration)) {\n    throw new Error(`LLM narration missing required field: ${field}`);\n  }\n}\n\nconst classifyOutput = $node[\"Classify\"].json;\n\nreturn [{\n  json: {\n    customer_id: classifyOutput.customer_id,\n    state: classifyOutput.state,\n    nudge_eligible_steps: classifyOutput.nudge_eligible_steps,\n    verdict: {\n      risk_level: classifyOutput.classification.risk_level,\n      recommended_action: classifyOutput.classification.recommended_action,\n      risks: classifyOutput.classification.risks,\n      summary: narration.summary,\n      reasoning: narration.reasoning,\n    },\n  },\n}];\n"
+        "mode": "runOnceForEachItem",
+        "jsCode": "const raw = $json.text;\n\nlet jsonText = null;\nconst fenceMatch = raw.match(/```json\\s*([\\s\\S]*?)```/i) || raw.match(/```\\s*([\\s\\S]*?)```/);\nif (fenceMatch) {\n  jsonText = fenceMatch[1].trim();\n} else {\n  const start = raw.indexOf('{');\n  const end = raw.lastIndexOf('}');\n  if (start !== -1 && end !== -1 && end > start) {\n    jsonText = raw.slice(start, end + 1);\n  }\n}\n\nif (!jsonText) {\n  throw new Error('No JSON object found in LLM response: ' + raw);\n}\n\nlet narration;\ntry {\n  narration = JSON.parse(jsonText);\n} catch (err) {\n  throw new Error('Failed to parse LLM JSON: ' + err.message + '\\nRaw text: ' + jsonText);\n}\n\nconst requiredFields = ['customer_id', 'summary', 'reasoning'];\nfor (const field of requiredFields) {\n  if (!(field in narration)) {\n    throw new Error(`LLM narration missing required field: ${field}`);\n  }\n}\n\nconst classifyItems = $('Classify').all().map(i => i.json);\nconst classifyOutput = classifyItems.find(c => c.customer_id === narration.customer_id);\nif (!classifyOutput) {\n  throw new Error(`Could not match LLM narration back to a Classify record for customer_id: ${narration.customer_id}`);\n}\n\nreturn {\n  json: {\n    customer_id: classifyOutput.customer_id,\n    state: classifyOutput.state,\n    nudge_eligible_steps: classifyOutput.nudge_eligible_steps,\n    verdict: {\n      risk_level: classifyOutput.classification.risk_level,\n      recommended_action: classifyOutput.classification.recommended_action,\n      risks: classifyOutput.classification.risks,\n      summary: narration.summary,\n      reasoning: narration.reasoning,\n    },\n  },\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1504,
-        -256
+        1472,
+        -480
       ],
       "id": "849a0ca1-d3f1-4060-bd8c-1d56841da530",
       "name": "Parse Narration"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "64a29204-b55e-4c01-81ca-776606be23f8",
+              "leftValue": "={{ $('Merge Verdict').all().find(v => v.json.customer_id === $json.customer_id).json.verdict.recommended_action }}",
+              "rightValue": "nudge_customer",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "145ce9ff-f775-45c8-a966-abaaafecdf92",
+              "leftValue": "={{ $('Merge Verdict').all().find(v => v.json.customer_id === $json.customer_id).json.nudge_eligible_steps.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2208,
+        -256
+      ],
+      "id": "ad80aa7b-4668-47ea-aa0f-928d47f43b71",
+      "name": "Should Nudge?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://mocks:8000/provisioning/nudge",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  customer_id: $json.customer_id,\n  message: `Hi! This is a friendly reminder that the following onboarding step(s) are still outstanding: ${$('Merge Verdict').all().find(v => v.json.customer_id === $json.customer_id).json.nudge_eligible_steps.map(s => `${s.name} (was due ${s.due_date})`).join(', ')}. Please complete these at your earliest convenience so we can keep your onboarding on track.`\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2400,
+        -416
+      ],
+      "id": "8cb5f8f7-e0f6-4e5e-9e9a-220d33622eec",
+      "name": "Send Nudge",
+      "retryOnFail": true
     },
     {
       "parameters": {
@@ -319,22 +386,12 @@
           },
           "conditions": [
             {
-              "id": "64a29204-b55e-4c01-81ca-776606be23f8",
-              "leftValue": "={{ $node[\"Parse Narration\"].json.verdict.recommended_action }}",
-              "rightValue": "nudge_customer",
+              "id": "83522558-244f-4a82-9eb7-79d8a7406cfc",
+              "leftValue": "={{ $json.classification.recommended_action }}",
+              "rightValue": "none",
               "operator": {
                 "type": "string",
-                "operation": "equals",
-                "name": "filter.operator.equals"
-              }
-            },
-            {
-              "id": "145ce9ff-f775-45c8-a966-abaaafecdf92",
-              "leftValue": "={{ $node[\"Parse Narration\"].json.nudge_eligible_steps.length }}",
-              "rightValue": 0,
-              "operator": {
-                "type": "number",
-                "operation": "gt"
+                "operation": "notEquals"
               }
             }
           ],
@@ -345,30 +402,95 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2048,
+        960,
         -256
       ],
-      "id": "ad80aa7b-4668-47ea-aa0f-928d47f43b71",
-      "name": "Should Nudge?"
+      "id": "b0b3bc9d-504b-436a-b676-b572b0d04748",
+      "name": "Should Narrate?"
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "http://mocks:8000/provisioning/nudge",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ {\n  customer_id: $node[\"Parse Narration\"].json.customer_id,\n  message: `Hi! This is a friendly reminder that the following onboarding step(s) are still outstanding: ${$node[\"Parse Narration\"].json.nudge_eligible_steps.map(s => `${s.name} (was due ${s.due_date})`).join(', ')}. Please complete these at your earliest convenience so we can keep your onboarding on track.`\n} }}",
+        "jsCode": "const item = $input.first().json;\nreturn [{\n  json: {\n    customer_id: item.customer_id,\n    state: item.state,\n    nudge_eligible_steps: item.nudge_eligible_steps,\n    verdict: {\n      risk_level: item.classification.risk_level,\n      recommended_action: item.classification.recommended_action,\n      risks: item.classification.risks,\n      summary: `${item.customer_id} is LOW risk. No overdue provisioning steps and invoicing is on track. No action needed at this time.`,\n      reasoning: `Per escalation-policy.md's LOW condition, nothing is currently overdue and the invoice is within the policy windows defined in invoicing-policy.md.`,\n    },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        -160
+      ],
+      "id": "4b99455d-7e5a-484b-9c80-684fa9e9a25a",
+      "name": "Build Low-Risk Verdict"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        -256
+      ],
+      "id": "5b1ddcb9-1b11-4d8a-8291-714789be17d1",
+      "name": "Merge Verdict"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7,15 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1088,
+        -384
+      ],
+      "id": "443e7b45-8dea-462c-8369-359b9542f5a8",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://mocks:8000/salesforce/opportunities",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
       "position": [
-        2240,
-        -416
+        -880,
+        -384
       ],
-      "id": "8cb5f8f7-e0f6-4e5e-9e9a-220d33622eec",
-      "name": "Send Nudge",
-      "retryOnFail": true
+      "id": "43c81236-1855-47a2-bf26-db3f0d5a3382",
+      "name": "Get Customer List"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ids = $json.customer_ids;\nreturn ids.map(id => ({ json: { customer_id: id } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -672,
+        -384
+      ],
+      "id": "8f15c41d-a819-4059-a606-0c9fb7660d0d",
+      "name": "Explode Customer List"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(inputItem => {\n  const item = inputItem.json;\n  let customer_id, trigger_source;\n\n  if (item.body && item.body.customer_id) {\n    customer_id = item.body.customer_id;\n    trigger_source = `webhook:${item.body.event || 'unknown'}`;\n  } else if (item.customer_id) {\n    customer_id = item.customer_id;\n    trigger_source = 'schedule';\n  } else {\n    throw new Error('Unable to determine customer_id from trigger data: ' + JSON.stringify(item));\n  }\n\n  return { json: { customer_id, trigger_source } };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -256
+      ],
+      "id": "fe78cd7d-5b05-42bf-a847-30480d23a0b5",
+      "name": "Normalize Trigger"
     }
   ],
   "pinData": {
@@ -400,7 +522,7 @@
       "main": [
         [
           {
-            "node": "Get Salesforce",
+            "node": "Normalize Trigger",
             "type": "main",
             "index": 0
           }
@@ -539,7 +661,7 @@
       "main": [
         [
           {
-            "node": "LLM Narrate",
+            "node": "Should Narrate?",
             "type": "main",
             "index": 0
           }
@@ -550,7 +672,7 @@
       "main": [
         [
           {
-            "node": "Should Notify?",
+            "node": "Merge Verdict",
             "type": "main",
             "index": 0
           }
@@ -585,6 +707,90 @@
           }
         ]
       ]
+    },
+    "Should Narrate?": {
+      "main": [
+        [
+          {
+            "node": "LLM Narrate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Low-Risk Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Low-Risk Verdict": {
+      "main": [
+        [
+          {
+            "node": "Merge Verdict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Verdict": {
+      "main": [
+        [
+          {
+            "node": "Should Notify?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Customer List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Customer List": {
+      "main": [
+        [
+          {
+            "node": "Explode Customer List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Explode Customer List": {
+      "main": [
+        [
+          {
+            "node": "Normalize Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Salesforce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -594,10 +800,9 @@
     "availableInMCP": false,
     "timeSavedMode": "fixed",
     "errorWorkflow": "B9xHGnmuE4iPwLtH",
-    "callerPolicy": "workflowsFromSameOwner",
-    "executionTimeout": -1
+    "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "290dbd21-7145-4eed-8705-3abe5752fecf",
+  "versionId": "681f0b15-026a-4915-baa0-b0e77cb6cb4b",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "de76667ac4edc932d0812c689cd91c664e2a282884accdcbbd2864350b14e6a5"
