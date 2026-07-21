@@ -3,7 +3,7 @@
 ## What this project is
 
 A candidate exercise for the "Enterprise Agent Solutions Developer" role at StackAdapt.
-We are building **Scenario 1: a Customer Success onboarding agent** — an AI agent that
+This is **Scenario 1: a Customer Success onboarding agent** — an AI agent that
 monitors client onboarding across a mocked SaaS stack (Salesforce CRM → CLM → NetSuite
 ERP → SaaS provisioning), detects risks and stalls, notifies the CS team, and takes a
 narrow set of safe autonomous actions. It also exposes a chat interface for CS users.
@@ -19,10 +19,10 @@ are explicitly acceptable.
 - The job description names "customer onboarding" as a target domain and names
   Salesforce + NetSuite twice. Scenario 1 mirrors StackAdapt's own quote-to-onboard stack.
 - JD asks for "conversational interfaces, context-aware workflows, and agentic task
-  execution" → we build BOTH an autonomous monitor loop AND a chat entry point.
+  execution" → build BOTH an autonomous monitor loop AND a chat entry point.
 - JD lists "governance and audit" as a job duty → audit logging is a first-class feature.
-- JD names Workato/Zapier as their platforms → we build in n8n (permitted by the brief)
-  but the design doc must include a short section mapping our patterns to Workato
+- JD names Workato/Zapier as their platforms → build in n8n (permitted by the brief)
+  but the design doc must include a short appendix mapping these patterns to Workato
   equivalents (triggers→recipe triggers, error workflow→recipe error handling, etc.).
 - JD wants Python proficiency → mocks are a real FastAPI app, not just n8n webhooks.
 - JD emphasizes demos → the recording is treated as mandatory, structured as a

@@ -1,14 +1,22 @@
 # Solution Design — CS Onboarding Agent
 
-**Scenario 1 (Sales/CS onboarding).** The JD names Salesforce and NetSuite explicitly and calls
-out "customer onboarding" as a target domain — this scenario mirrors StackAdapt's own
-quote-to-onboard stack directly.
+Here is the scenario I picked from the case study, and a short summary of the solution I
+designed and how it meets the brief.
+
+**Scenario 1: Sales / Customer Success onboarding.** The JD names Salesforce and NetSuite
+explicitly and calls out "customer onboarding" as a target domain, mirroring StackAdapt's own
+quote-to-onboard stack. My solution is an n8n-orchestrated agent that monitors onboarding health
+across four mocked systems both autonomously and conversationally, using a deterministic rules
+engine for risk classification and Claude for narration and conversation — satisfying the
+brief's mock-API-integration, LLM-generated-summary, and error-handling requirements directly,
+plus its ask for both autonomous and interactive operation.
 
 ## Architecture
 
 Docker Compose runs three pieces: **n8n** (orchestration), a **FastAPI** mock of
 Salesforce/CLM/NetSuite/provisioning plus Slack and a SQLite audit trail, and the **Anthropic
-API** for the one place an LLM is actually needed. Three n8n workflows:
+API (Claude Sonnet 5)** for two distinct LLM roles — narrating a pre-computed verdict in Monitor,
+and powering the full conversational agent in Chat. Three n8n workflows:
 
 - **Monitor** (autonomous) — a Webhook (event-driven, fired on simulated `contract_signed`/
   `invoice_paid`) and a Schedule Trigger (`0 7,15 * * *`, twice daily — matched to the multi-day
@@ -27,40 +35,55 @@ Core principle: **the LLM narrates, code decides.** `Classify` is a deterministi
 math, ownership-gated overdue logic. The LLM is never asked to classify; it writes a summary of a
 verdict it didn't produce, and is explicitly told not to change it. This isn't a compromise — the
 brief treats "LLM or rules-based logic" as alternatives, and structured inputs with crisp
-thresholds are a better fit for code than inference, which we confirmed empirically: an earlier
-LLM-driven version of this same classification miscounted business days and once produced an
-inconsistent notify/nudge decision the deterministic version doesn't.
+thresholds are a better fit for code than inference, confirmed empirically: an earlier LLM-driven
+version of this same classification miscounted business days and once produced an inconsistent
+notify/nudge decision the deterministic version doesn't.
 
-Same discipline for actions: nudge eligibility (customer-owned, overdue, not done) is re-derived
-from live data by code in both Monitor and Chat, never trusted from the LLM's own claims. Chat's
-one side-effecting action is confirmation-gated at the code level — `draft_nudge(customer_id,
-confirmed)` only calls `/provisioning/nudge` when `confirmed: true`, and no code path reaches that
-call without a prior human turn. The LLM handles narration (`summary`/`reasoning`, skipped
-entirely when `recommended_action === "none"`, cutting LLM calls roughly in half per sweep) and
-the full conversational surface, including enrichment (`get_customer_state` merges 4 systems into
-one view on demand).
+The brief's four example applications of the AI agent all show up concretely:
+
+- **Generating human-readable summaries.** `LLM Narrate` (Monitor) writes `summary`/`reasoning`
+  from the pre-computed verdict, skipped entirely when `recommended_action === "none"` (cutting
+  LLM calls roughly in half per sweep, since a clean account needs no narrative at all). Chat's
+  AI Agent writes every reply conversationally.
+- **Enriching details.** Chat's `get_customer_state(customer_id)` tool merges four separate
+  systems (Salesforce, CLM, NetSuite, provisioning) into one view on demand.
+- **Handling errors.** A dedicated Error Handler workflow catches uncaught failures from either
+  workflow, logs them to the audit trail, and posts to `#ops-alerts` — separate from the retry
+  logic on individual calls (see Trade-offs).
+- **Taking actions.** The one side-effecting action (`nudge_customer`) is allowlisted and
+  independently re-verified: nudge eligibility (customer-owned, overdue, not done) is re-derived
+  from live data by code in both Monitor and Chat, never trusted from the LLM's own claims. Chat's
+  action is additionally confirmation-gated at the code level — `draft_nudge(customer_id,
+  confirmed)` only calls `/provisioning/nudge` when `confirmed: true`, and no code path reaches
+  that call without a prior human turn.
 
 ## Orchestration
 
-Webhook, schedule, and chat triggers all converge on the same per-customer chain — trigger type
-is normalized away immediately so downstream branching never special-cases it. All inter-system
-calls are plain REST against the mocks; n8n is the only middleware. Actions are POST calls gated
-behind deterministic `IF` nodes reading the classification, never behind the LLM's own judgment.
+- **Event-driven triggers.** A Webhook reacts to simulated `contract_signed`/`invoice_paid`
+  events; a Schedule Trigger independently sweeps every customer twice daily. Both are genuine
+  triggers, not polling dressed up as one.
+- **API/webhook flows.** Every inter-system call is plain REST against the mock API; actions
+  (Slack post, nudge, audit write) are themselves POST calls, gated behind deterministic `IF`
+  nodes reading the classification, never behind the LLM's own judgment about whether to act.
+- **Middleware.** n8n is the only middleware layer. A `Normalize Trigger` step converts whichever
+  trigger fired into one consistent shape immediately, so every node downstream is trigger-
+  agnostic — branching logic never special-cases "did this come from the webhook or the
+  schedule."
 
 ## Trade-offs and assumptions
 
 **Reliability.** The NetSuite mock deliberately fails ~20% of calls (`FLAKY_RATE=0.2`) so the
-system has a real transient failure to survive, not just a claimed one — this is the demo's
-concrete answer to the brief's "logging or error handling approach" requirement. Retries (3
-tries, fixed delay — not true exponential backoff, a known simplification) apply to read-only
-calls and the one idempotent action (`/provisioning/nudge`,
-keyed per customer/day); deliberately not to `/slack/notify` or `/audit`, since blind retries on
-non-idempotent calls risk duplicate side effects.
+system has a real transient failure to survive, not just a claimed one — the demo's concrete
+answer to the brief's "logging or error handling approach" requirement. Retries (3 tries, fixed
+delay — not true exponential backoff, a known simplification) apply to read-only calls and the
+one idempotent action (`/provisioning/nudge`, keyed per customer/day); deliberately not to
+`/slack/notify` or `/audit`, since blind retries on non-idempotent calls risk duplicate side
+effects.
 
 **A concurrency bug worth naming.** Adding the multi-customer schedule sweep alongside the
 single-customer webhook path surfaced a real issue: n8n's implicit node-reference resolution
 isn't reliable once several items flow through divergent branches in one execution — it silently
-dropped one customer's item and duplicated another's before we understood it. Fix: every
+dropped one customer's item and duplicated another's before this was understood. Fix: every
 cross-node reference downstream of classification now uses an explicit `customer_id` correlation
 lookup instead of implicit item-pairing — the same principle any distributed system uses to
 correlate async results.
@@ -90,7 +113,9 @@ built directly against the mock REST API; formalizing them as MCP servers would 
 safe-action surface instead of re-implementing bespoke integrations. Audit/Slack are logging
 sinks, not collaboration surfaces, and would likely stay plain REST.
 
-## Workato mapping
+---
+
+## Appendix: Workato mapping
 
 | n8n pattern | Workato equivalent |
 |---|---|
