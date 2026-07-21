@@ -1,0 +1,203 @@
+{
+  "name": "Chat",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -352,
+        -64
+      ],
+      "id": "55ebc3ef-0878-4362-b575-20fb40181fcf",
+      "name": "When chat message received",
+      "webhookId": "a867305a-cd43-4092-a852-f8a0aa6292ce"
+    },
+    {
+      "parameters": {
+        "url": "http://mocks:8000/playbook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -160,
+        -64
+      ],
+      "id": "f5613935-e214-421f-ab9c-902df971b36a",
+      "name": "Get Playbook",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $node[\"When chat message received\"].json.chatInput }}\n",
+        "options": {
+          "systemMessage": "=Today's date is {{ $now.format('yyyy-LL-dd') }}.\n\nYou are a Customer Success assistant helping CS reps check on customer\nonboarding status and take safe actions in chat.\n\nYou have two tools:\n1. get_customer_state(customer_id) -- fetches the customer's current\n   Salesforce, CLM, NetSuite, and provisioning data. Use this whenever a\n   user asks about a specific customer's status.\n2. draft_nudge(customer_id, confirmed) -- computes and drafts a templated\n   reminder for overdue CUSTOMER-owned provisioning steps. It decides\n   eligibility and composes the message itself, deterministically -- you\n   never write nudge text yourself. ALWAYS call this first with\n   confirmed=false to preview the draft, then show the exact draft text\n   returned to the user and ask \"Should I send this?\" before doing\n   anything else. Only call it again with confirmed=true if the user\n   explicitly confirms (e.g. says yes / send it / go ahead) in a later\n   message. Never set confirmed=true without an explicit confirmation\n   from the user earlier in this conversation.\n\nKnown customer IDs: acme, globex, initech.\n\nPlaybook policy documents (for grounding your answers about risk and escalation):\n{{ $json.text }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        48,
+        -64
+      ],
+      "id": "457c4399-658c-4971-8d6e-ed9a1a492bcc",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        -96,
+        144
+      ],
+      "id": "f3aa0d79-408a-4e79-8443-34046f860d2a",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "KqBjSxjyf3p5hHeA",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        64,
+        144
+      ],
+      "id": "1bfbfeba-891a-418e-8ac1-2df9c86e59c4",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": "Fetch a customer's current onboarding state (Salesforce opportunity, CLM contract, NetSuite invoice, and provisioning checklist). The input should be just the customer_id as a plain string (e.g. \"acme\", \"globex\", or \"initech\").",
+        "jsCode": "const helpers = this.helpers;\n\nasync function getJson(path, retries = 3, delayMs = 1000) {\n  for (let attempt = 1; attempt <= retries; attempt++) {\n    try {\n      const response = await helpers.httpRequest({ method: 'GET', url: `http://mocks:8000${path}` });\n      return typeof response === 'string' ? JSON.parse(response) : response;\n    } catch (err) {\n      if (attempt === retries) throw err;\n      await new Promise(resolve => setTimeout(resolve, delayMs));\n    }\n  }\n}\n\nconst customerId = query.trim();\n\nconst [salesforce, clm, netsuite, provisioning] = await Promise.all([\n  getJson(`/salesforce/opportunities/${customerId}`),\n  getJson(`/clm/contracts/${customerId}`),\n  getJson(`/netsuite/invoices/${customerId}`),\n  getJson(`/provisioning/status/${customerId}`),\n]);\n\nreturn JSON.stringify({ customer_id: customerId, salesforce, clm, netsuite, provisioning }, null, 2);\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        144
+      ],
+      "id": "667f384b-5956-460c-96af-d0933c3e6f82",
+      "name": "get_customer_state"
+    },
+    {
+      "parameters": {
+        "description": "Draft (and optionally send) a templated reminder to a customer for their overdue, customer-owned provisioning steps. Input: customer_id (string), confirmed (boolean). ALWAYS call first with confirmed=false to get a preview -- this does not send anything. Only call again with confirmed=true after the user has explicitly approved the draft shown to them.",
+        "jsCode": "const helpers = this.helpers;\n\nasync function getJson(path, retries = 3, delayMs = 1000) {\n  for (let attempt = 1; attempt <= retries; attempt++) {\n    try {\n      const response = await helpers.httpRequest({ method: 'GET', url: `http://mocks:8000${path}` });\n      return typeof response === 'string' ? JSON.parse(response) : response;\n    } catch (err) {\n      if (attempt === retries) throw err;\n      await new Promise(resolve => setTimeout(resolve, delayMs));\n    }\n  }\n}\n\nasync function postJson(path, body) {\n  const response = await helpers.httpRequest({\n    method: 'POST',\n    url: `http://mocks:8000${path}`,\n    body,\n    json: true,\n  });\n  return typeof response === 'string' ? JSON.parse(response) : response;\n}\n\nconst params = typeof query === 'string' ? JSON.parse(query) : query;\nconst customerId = params.customer_id;\nconst confirmed = params.confirmed === true || params.confirmed === 'true';\n\nconst provisioning = await getJson(`/provisioning/status/${customerId}`);\nconst today = $now.toFormat('yyyy-LL-dd');\n\nconst eligibleSteps = provisioning.steps.filter(s =>\n  s.owner === 'customer' && s.status !== 'done' && s.due_date < today\n);\n\nif (eligibleSteps.length === 0) {\n  return JSON.stringify({\n    draft: null,\n    sent: false,\n    message: `No overdue customer-owned provisioning steps for ${customerId}. Nothing to nudge.`,\n  });\n}\n\nconst message = `Hi! This is a friendly reminder that the following onboarding step(s) are still outstanding: ${eligibleSteps.map(s => `${s.name} (was due ${s.due_date})`).join(', ')}. Please complete these at your earliest convenience so we can keep your onboarding on track.`;\n\nif (!confirmed) {\n  return JSON.stringify({\n    draft: message,\n    eligible_steps: eligibleSteps.map(s => s.name),\n    sent: false,\n    note: 'This is a preview only. Nothing has been sent. Ask the user to confirm before calling again with confirmed=true.',\n  });\n}\n\nconst nudgeResult = await postJson('/provisioning/nudge', { customer_id: customerId, message });\n\nawait postJson('/audit', {\n  run_id: `chat-${Date.now()}`,\n  trigger: 'chat',\n  customer_id: customerId,\n  state_snapshot: { provisioning },\n  llm_verdict: null,\n  action_taken: nudgeResult.sent ? 'chat_nudge' : 'chat_nudge_skipped_already_sent',\n});\n\nreturn JSON.stringify({\n  draft: message,\n  eligible_steps: eligibleSteps.map(s => s.name),\n  sent: nudgeResult.sent,\n  nudge_id: nudgeResult.nudge_id,\n  reason: nudgeResult.reason || null,\n});",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n  \"customer_id\": \"acme\",\n  \"confirmed\": false\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        144
+      ],
+      "id": "63ea5f07-a387-46b1-84f2-1543157fde92",
+      "name": "draft_nudge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Get Playbook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Playbook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_customer_state": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "draft_nudge": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "B9xHGnmuE4iPwLtH",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "a7cffaa5-5647-4ca2-9bf8-b8d6b90bc6b8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "de76667ac4edc932d0812c689cd91c664e2a282884accdcbbd2864350b14e6a5"
+  },
+  "nodeGroups": [],
+  "id": "jDoPOzXstGWoY3pY",
+  "tags": []
+}
