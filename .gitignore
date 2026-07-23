@@ -4,6 +4,9 @@
 # internal planning doc -- not for sharing with the repo's audience
 CLAUDE.md
 
+# personal interview/presentation prep -- not for sharing with the repo's audience
+/interview-prep/
+
 # python
 __pycache__/
 *.pyc
